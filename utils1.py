@@ -148,7 +148,7 @@ def plot_correlation_matrix(data, method):
     corr = data.corr(method=method)  # Calculate the correlation matrix using the specified method
 
     mask = np.tri(*corr.shape, k=0, dtype=bool)  # Create a mask to hide the upper triangle of the matrix
-    corr.where(mask, np.NaN, inplace=True)  # Set the upper triangle values to NaN
+    corr.where(mask, np.nan, inplace=True)  # Set the upper triangle values to NaN
 
     plt.figure(figsize=(30, 15))  # Adjust the width and height of the heatmap as desired
 

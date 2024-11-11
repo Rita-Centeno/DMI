@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.express as px
 from sklearn.impute import KNNImputer
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
@@ -177,6 +178,33 @@ def plot_scatter(ax, data, variable1, variable2, color='cadetblue'):
     ax.scatter(data[variable1], data[variable2], color=color)  # Plot the scatter plot
 
     set_plot_properties(ax, variable1, variable2)  # Set plot properties using helper function
+
+
+def plot_map(data, column, hover_col, zoom = 1):
+    px.set_mapbox_access_token('pk.eyJ1IjoiYXJjYWRldGUyMSIsImEiOiJjbGY5cXlkY3oxcnp1NDBvNHNyM3MwZm9mIn0.sN_CBzeTj04J0BRjr3DJyw')
+
+    # Create a scatter mapbox plot using the sorted DataFrame
+    fig = px.scatter_mapbox(data, 
+                            lat='Latitude', 
+                            lon='Longitude', 
+                            hover_name=hover_col, 
+                            color=column,
+                            zoom=zoom, 
+                            width=400,
+                            # opacity=0.1
+                            )
+
+    # Customize the layout of the figure
+    fig.update_layout(mapbox_style='dark', 
+                    margin={'r': 0, 't': 0, 'l': 0, 'b': 0},
+                    legend_title_text='Group', 
+                    legend_title_font_color='black',
+                    legend_orientation='h', 
+                    legend_y=0
+                    )
+
+    # Display the figure
+    fig.show()
 
 
 def knn_imputer_best_k(data, k_min, k_max, weights='distance'):

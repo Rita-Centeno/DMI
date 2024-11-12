@@ -180,13 +180,20 @@ def plot_scatter(ax, data, variable1, variable2, color='cadetblue'):
     set_plot_properties(ax, variable1, variable2)  # Set plot properties using helper function
 
 
-def plot_map(data, column, hover_col, zoom = 1):
+def plot_map(data, column, hover_col, zoom = 1, invert = False):
     px.set_mapbox_access_token('pk.eyJ1IjoiYXJjYWRldGUyMSIsImEiOiJjbGY5cXlkY3oxcnp1NDBvNHNyM3MwZm9mIn0.sN_CBzeTj04J0BRjr3DJyw')
+
+    if not invert:
+        latitude = 'Latitude'
+        longitude = 'Longitude'
+    else:
+        latitude = 'Longitude'
+        longitude = 'Latitude'
 
     # Create a scatter mapbox plot using the sorted DataFrame
     fig = px.scatter_mapbox(data, 
-                            lat='Latitude', 
-                            lon='Longitude', 
+                            lat=latitude, 
+                            lon=longitude, 
                             hover_name=hover_col, 
                             color=column,
                             zoom=zoom, 
@@ -197,7 +204,7 @@ def plot_map(data, column, hover_col, zoom = 1):
     # Customize the layout of the figure
     fig.update_layout(mapbox_style='dark', 
                     margin={'r': 0, 't': 0, 'l': 0, 'b': 0},
-                    legend_title_text='Group', 
+                    legend_title_text='ZIP Code', 
                     legend_title_font_color='black',
                     legend_orientation='h', 
                     legend_y=0

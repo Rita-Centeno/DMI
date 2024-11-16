@@ -130,7 +130,7 @@ def plot_histogram(ax, data, variable, x_label, y_label='Count', color='cadetblu
     Returns:
         None
     """
-    ax.hist(data[variable], bins=50, color=color)  # Plot the histogram using 50 bins
+    ax.hist(data[variable], bins=20, color=color)  # Plot the histogram using 50 bins
 
     set_plot_properties(ax, x_label, y_label)  # Set plot properties using helper function
 

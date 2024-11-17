@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
@@ -267,3 +268,57 @@ def knn_imputer_best_k(data, k_min, k_max, weights='distance'):
     best_k = k_values[best_k_index]
 
     print('Best K value:', best_k)
+
+
+def detect_outliers_iqr_with_stats(df, cols_to_check=None):
+    # Use numeric columns if cols_to_check is None
+    if cols_to_check is None:
+        cols_to_check = df.select_dtypes(include='number').columns
+
+    stats = {}
+    
+    for col in cols_to_check:
+        Q1 = df[col].quantile(0.25)  # First quartile (25%)
+        Q3 = df[col].quantile(0.75)  # Third quartile (75%)
+        IQR = Q3 - Q1  # Interquartile range
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        
+        # Calculate outliers
+        outliers = ((df[col] < lower_bound) | (df[col] > upper_bound))
+        percentage_outliers = 100 * outliers.sum() / len(df)
+        
+        # Store results
+        stats[col] = {
+            'Lower Bound': lower_bound,
+            'Upper Bound': upper_bound,
+            'Percentage Outliers': percentage_outliers
+        }
+    
+    return pd.DataFrame(stats).T
+
+
+def remove_outliers_iqr(df, cols_to_check=None):
+    # Use numeric columns if cols_to_check is None
+    if cols_to_check is None:
+        cols_to_check = df.select_dtypes(include='number').columns
+    
+    # Create a mask for rows without outliers
+    no_outliers_mask = pd.Series(True, index=df.index)
+    
+    for col in cols_to_check:
+        Q1 = df[col].quantile(0.25)  # First quartile (25%)
+        Q3 = df[col].quantile(0.75)  # Third quartile (75%)
+        IQR = Q3 - Q1  # Interquartile range
+        
+        # Define bounds
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        
+        # Update the mask
+        no_outliers_mask &= (df[col] >= lower_bound) & (df[col] <= upper_bound)
+    
+    # Filter the DataFrame and retain all columns
+    df_no_outliers = df[no_outliers_mask]
+    
+    return df_no_outliers

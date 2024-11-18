@@ -162,8 +162,11 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-eda_ml1.ipynb
+eda_ml2.ipynb
 eda_tentativa1.ipynb
 eda_tentativa2.ipynb
 eda_tentativa3.ipynb
 eda_tentativa4.ipynb
+modeling_ml2.ipynb
+clustering3.ipynb
+utils2.py

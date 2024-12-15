@@ -8,6 +8,18 @@ from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
+def format_column_name(column, exclude_words=None):
+    if exclude_words is None:
+        exclude_words = []  # Default to no excluded words
+    exclude_words = set(word.lower() for word in exclude_words)  # Normalize for case-insensitivity
+    
+    # Split the column into words based on '_'
+    words = column.split('_')
+    # Capitalize all words except those in the exclusion list
+    formatted_words = [word.capitalize() if word.lower() not in exclude_words else word.lower() for word in words]
+    # Rejoin the words with '_'
+    return '_'.join(formatted_words)
+
 
 def set_plot_properties(ax, x_label, y_label, y_lim=[]):
     """
@@ -185,11 +197,11 @@ def plot_map(data, column, hover_col, zoom = 1, invert = False):
     px.set_mapbox_access_token('pk.eyJ1IjoiYXJjYWRldGUyMSIsImEiOiJjbGY5cXlkY3oxcnp1NDBvNHNyM3MwZm9mIn0.sN_CBzeTj04J0BRjr3DJyw')
 
     if not invert:
-        latitude = 'Latitude'
-        longitude = 'Longitude'
+        latitude = 'latitude'
+        longitude = 'longitude'
     else:
-        latitude = 'Longitude'
-        longitude = 'Latitude'
+        latitude = 'longitude'
+        longitude = 'latitude'
 
     # Create a scatter mapbox plot using the sorted DataFrame
     fig = px.scatter_mapbox(data, 
@@ -268,6 +280,26 @@ def knn_imputer_best_k(data, k_min, k_max, weights='distance'):
     best_k = k_values[best_k_index]
 
     print('Best K value:', best_k)
+
+
+def knn_imputer(data, k=3, exclude_columns=[]):
+    """Impute missing values using the KNN algorithm."""
+    # Extract the indexes of the excluded columns
+    exclude_indexes = {col: data.columns.get_loc(col) for col in exclude_columns}
+
+    # Drop the excluded columns
+    imputation_data = data.drop(columns=exclude_columns)
+
+    # Perform KNN imputation on the remaining data
+    imputer = KNNImputer(n_neighbors=k, weights='distance').fit(imputation_data)
+    imputed_data = pd.DataFrame(imputer.transform(imputation_data), columns=imputation_data.columns, index=imputation_data.index
+    )
+
+    # Reinsert the excluded columns at their original positions
+    for col, idx in exclude_indexes.items():
+        imputed_data.insert(idx, col, data[col])
+
+    return imputed_data
 
 
 def detect_outliers_iqr_with_stats(df, cols_to_check=None):

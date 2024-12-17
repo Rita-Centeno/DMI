@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.metrics import silhouette_score, confusion_matrix
@@ -128,7 +129,7 @@ def groupby_mean(data, variable, n_features=13):
 
     Returns:
         pandas.DataFrame: The transposed DataFrame containing the mean values for each group,
-                          with an additional column for the overall mean.
+                          with an additional column for the overall mean and the count of observations.
     """
     # Group the data by the specified variable and calculate the mean for each group
     grouped_data = data.groupby(variable).mean().round(2)
@@ -142,8 +143,15 @@ def groupby_mean(data, variable, n_features=13):
     # Add the overall mean as a new column
     transposed_data["data"] = overall_mean
 
-    # Select the first n_features + 1 columns (including the variable column) and transpose the DataFrame
+    # Select the first n_features rows
     result = transposed_data.iloc[:n_features, :]
+
+    # Calculate the count of observations in each group and overall
+    counts = data.groupby(variable).size()
+    counts["data"] = data.shape[0]  # Add the total number of observations
+
+    # Add the counts as the last row in the result
+    result.loc["Counts"] = counts
 
     return result
 
@@ -195,4 +203,76 @@ def visualize_dimensionality_reduction(transformation, targets):
     plt.legend(handles=handles, title='Clusters')
 
     # Display the plot
+    plt.show()
+
+
+def get_r2_hc(df, link_method, max_nclus, min_nclus=1, dist="euclidean"):
+    """This function computes the R2 for a set of cluster solutions given by the application of a hierarchical method.
+    The R2 is a measure of the homogenity of a cluster solution. It is based on SSt = SSw + SSb and R2 = SSb/SSt.
+
+    Parameters:
+    df (DataFrame): Dataset to apply clustering
+    link_method (str): either "ward", "complete", "average", "single"
+    max_nclus (int): maximum number of clusters to compare the methods
+    min_nclus (int): minimum number of clusters to compare the methods. Defaults to 1.
+    dist (str): distance to use to compute the clustering solution. Must be a valid distance. Defaults to "euclidean".
+
+    Returns:
+    ndarray: R2 values for the range of cluster solutions
+    """
+    def get_ss(df):
+        ss = np.sum(df.var() * (df.count() - 1))
+        return ss  # return sum of sum of squares of each df variable
+
+    sst = get_ss(df)  # get total sum of squares
+
+    r2 = []  # where we will store the R2 metrics for each cluster solution
+
+    for i in range(min_nclus, max_nclus+1):  # iterate over desired ncluster range
+        cluster = AgglomerativeClustering(n_clusters=i, metric=dist, linkage=link_method)
+
+
+        hclabels = cluster.fit_predict(df) #get cluster labels
+
+
+        df_concat = pd.concat((df, pd.Series(hclabels, name='labels', index=df.index)), axis=1)  # concat df with labels
+
+
+        ssw_labels = df_concat.groupby(by='labels').apply(get_ss)  # compute ssw for each cluster labels
+
+
+        ssb = sst - np.sum(ssw_labels)  # remember: SST = SSW + SSB
+
+
+        r2.append(ssb / sst)  # save the R2 of the given cluster solution
+
+    return np.array(r2)
+
+
+def plot_r2_linkage(df, max_nclus):
+    # Prepare input
+    hc_methods = ["ward", "complete", "average", "single"]
+    # Call function defined above to obtain the R2 statistic for each hc_method
+    max_nclus = 10
+    r2_hc_methods = np.vstack(
+        [
+            get_r2_hc(df=df, link_method=link, max_nclus=max_nclus)
+            for link in hc_methods
+        ]
+    ).T
+    r2_hc_methods = pd.DataFrame(r2_hc_methods, index=range(1, max_nclus + 1), columns=hc_methods)
+
+    sns.set()
+    # Plot data
+    fig = plt.figure(figsize=(11,5))
+    sns.lineplot(data=r2_hc_methods, linewidth=2.5, markers=["o"]*4)
+
+    # Finalize the plot
+    fig.suptitle("R2 plot for various hierarchical methods", fontsize=21)
+    plt.gca().invert_xaxis()  # invert x axis
+    plt.legend(title="HC methods", title_fontsize=11)
+    plt.xticks(range(1, max_nclus + 1))
+    plt.xlabel("Number of clusters", fontsize=13)
+    plt.ylabel("R2 metric", fontsize=13)
+
     plt.show()

@@ -6,9 +6,9 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.metrics import silhouette_score, confusion_matrix
 from scipy.cluster.hierarchy import dendrogram
 from utils1 import set_plot_properties
-from umap import UMAP
+from sklearn.base import clone
 
-
+# KMEANS -------------------------------------------------------------------------------------------------------------
 def plot_inertia_and_silhouette(data, k_min=2, k_max=15):
     """
     Plot the inertia (dispersion) and silhouette score for different numbers of clusters.
@@ -41,20 +41,19 @@ def plot_inertia_and_silhouette(data, k_min=2, k_max=15):
     plt.show()
 
 
-def plot_dendrogram(data, linkage_method, cut_line=None):
+# HIERARCHICAL -------------------------------------------------------------------------------------------------------
+def plot_dendrogram(data, linkage_method, columns=None, cut_line=None):
     """
     Plot a dendrogram for hierarchical clustering.
-
-    Args:
-        data (numpy.ndarray or pandas.DataFrame): The input data for clustering.
-        linkage_method (str): The linkage method used for clustering.
-        cut_line (float, optional): The threshold value to cut the dendrogram. Defaults to None.
-
-    Returns:
-        None
     """
+    # Select the specified columns
+    if columns is None:
+        columns = data.columns
+    
+    data_filtered = data[columns]
+    
     # Fit the AgglomerativeClustering model
-    model = AgglomerativeClustering(linkage=linkage_method, distance_threshold=0, n_clusters=None).fit(data)
+    model = AgglomerativeClustering(linkage=linkage_method, distance_threshold=0, n_clusters=None).fit(data_filtered)
 
     # Create the plot
     fig, ax = plt.subplots()
@@ -87,6 +86,7 @@ def plot_dendrogram(data, linkage_method, cut_line=None):
     plt.show()
 
 
+# CLUSTER ANALYSIS ---------------------------------------------------------------------------------------
 def clusters_comparison(data, solution1, solution2):
     """
     Compare the clusters of two solutions using a confusion matrix.
@@ -179,6 +179,7 @@ def compare_clusters(df: pd.DataFrame, cluster_col: str) -> pd.DataFrame:
     return clusters_mean.join(general_mean)
 
 
+# DIMENSIONALITY REDUCTION ---------------------------------------------------------------------------------------
 def visualize_dimensionality_reduction(transformation, targets):
     """
     Visualize the dimensionality reduction results using a scatter plot.
@@ -206,6 +207,7 @@ def visualize_dimensionality_reduction(transformation, targets):
     plt.show()
 
 
+# COMPARE LINKEAGE METHODS -------------------------------------------------------------------------------------------
 def get_r2_hc(df, link_method, max_nclus, min_nclus=1, dist="euclidean"):
     """This function computes the R2 for a set of cluster solutions given by the application of a hierarchical method.
     The R2 is a measure of the homogenity of a cluster solution. It is based on SSt = SSw + SSb and R2 = SSb/SSt.
@@ -276,3 +278,55 @@ def plot_r2_linkage(df, max_nclus):
     plt.ylabel("R2 metric", fontsize=13)
 
     plt.show()
+
+
+# COMPARE CLUSTERING TECHNIQUES ---------------------------------------------------------------------------------------
+
+def get_ss(df):
+    """Computes the sum of squares for all variables given a dataset
+    """
+    ss = np.sum(df.var() * (df.count() - 1))
+    return ss  # return sum of sum of squares of each df variable
+
+def r2(df, labels):
+    sst = get_ss(df)
+    ssw = np.sum(df.groupby(labels).apply(get_ss))
+    return 1 - ssw/sst
+
+def get_r2_scores(df, clusterer, min_k=2, max_k=10):
+    """
+    Loop over different values of k. To be used with sklearn clusterers.
+    """
+    r2_clust = {}
+    for n in range(min_k, max_k):
+        clust = clone(clusterer).set_params(n_clusters=n)
+        labels = clust.fit_predict(df)
+        r2_clust[n] = r2(df, labels)
+    return r2_clust
+
+
+def get_r2_df(df, feats, kmeans_model, hierar_model):
+  # Obtaining the R² scores for each cluster solution
+
+  r2_scores = {}
+  r2_scores['kmeans'] = get_r2_scores(df[feats], kmeans_model)
+
+  for linkage in ['complete', 'average', 'single', 'ward']:
+      r2_scores[linkage] = get_r2_scores(
+          df[feats], hierar_model.set_params(linkage=linkage)
+      )
+
+  return pd.DataFrame(r2_scores)
+
+
+def plot_r2_scores(r2_scores,
+                   plot_title="Preference Variables:\nR² plot for various clustering methods\n",
+                   legend_title="Cluster methods"):
+  # Visualizing the R² scores for each cluster solution on demographic variables
+  pd.DataFrame(r2_scores).plot.line(figsize=(10,7))
+
+  plt.title(plot_title, fontsize=21)
+  plt.legend(title=legend_title, title_fontsize=11)
+  plt.xlabel("Number of clusters", fontsize=13)
+  plt.ylabel("R² metric", fontsize=13)
+  plt.show()

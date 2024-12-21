@@ -7,6 +7,7 @@ from sklearn.impute import KNNImputer
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
 
 
 # TRANSFORMATIONS -------------------------------------------------------------------------------------
@@ -318,6 +319,29 @@ def plot_map(data, column, hover_col, zoom = 1, invert = False):
 
     # Display the figure
     fig.show()
+
+
+def plot_distributions(data: pd.DataFrame, variables: list, colors: list, iqr_removal=False):
+    if iqr_removal:
+        df = remove_outliers_iqr(data).iloc[:, 1:]
+    else:
+        df = data.iloc[:, 1:]
+
+    # Create a new DataFrame with the scaled values
+    data_no_outliers_iqr_st_scl = StandardScaler().fit_transform(df)
+    data_no_outliers_iqr_st_scl = pd.DataFrame(data_no_outliers_iqr_st_scl, columns=df.columns, index=df.index)
+
+    # Create KDE plots for the scaled numerical columns
+    for i in range(len(variables)):
+        sns.kdeplot(data_no_outliers_iqr_st_scl[variables[i]], color=colors[i])
+
+    # Set the legend and label the x-axis
+    plt.legend(variables, fontsize=16)
+    plt.gca().set_xticks([])
+    plt.xlabel('')
+
+    # Display the plot
+    plt.show()
 
 
 # IMPUTATION ------------------------------------------------------------------------------------------

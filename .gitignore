@@ -184,3 +184,5 @@ Data/New_Data
 
 eda_celulas.ipynb
 clustering_celulas.ipynb
+clustering_perc.ipynb
+clustering_pref_copy.ipynb

@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.metrics import silhouette_score, confusion_matrix
 from scipy.cluster.hierarchy import dendrogram
-from utils1 import set_plot_properties
+from sklearn.neighbors import NearestNeighbors
 from sklearn.base import clone
+from utils1 import set_plot_properties
 
 # KMEANS -------------------------------------------------------------------------------------------------------------
 def plot_inertia_and_silhouette(data, k_min=2, k_max=15):
@@ -86,6 +87,23 @@ def plot_dendrogram(data, linkage_method, columns=None, cut_line=None):
     plt.show()
 
 
+# DBSCAN -------------------------------------------------------------------------------------------------------------~
+def plot_kdist_graph(df, feats, n_neighbors=150):
+  ''' K-distance graph to find out the right eps value. For each data point, 
+  calculates the average distance to its n_neighbors'''
+
+  neigh = NearestNeighbors(n_neighbors=n_neighbors)
+  neigh.fit(df[feats])
+  distances, _ = neigh.kneighbors(df[feats])
+
+  ## We sort the average distances of the points and plot
+  distances = np.sort(distances[:, -1])
+  plt.ylabel("%d-NN Distance" % n_neighbors)
+  plt.xlabel("Points sorted by distance")
+  plt.plot(distances)
+  plt.show()
+
+
 # CLUSTER ANALYSIS ---------------------------------------------------------------------------------------
 def clusters_comparison(data, solution1, solution2):
     """
@@ -119,7 +137,7 @@ def clusters_comparison(data, solution1, solution2):
     return df.iloc[:length1, :length2]
 
 
-def groupby_mean(data, variable, n_features=13):
+def groupby_mean(data, variable, gradient=False, n_features=13):
     """
     Group the data by a variable and calculate the mean for each group.
 
@@ -134,24 +152,31 @@ def groupby_mean(data, variable, n_features=13):
     # Group the data by the specified variable and calculate the mean for each group
     grouped_data = data.groupby(variable).mean().round(2)
 
-    # Calculate the overall mean for all numeric columns
-    overall_mean = data.mean(numeric_only=True).round(2)
-
     # Transpose the grouped data
     transposed_data = grouped_data.T
-
-    # Add the overall mean as a new column
-    transposed_data["data"] = overall_mean
 
     # Select the first n_features rows
     result = transposed_data.iloc[:n_features, :]
 
-    # Calculate the count of observations in each group and overall
-    counts = data.groupby(variable).size()
-    counts["data"] = data.shape[0]  # Add the total number of observations
+    if not gradient:
+        # Calculate the overall mean for all numeric columns
+        overall_mean = data.mean(numeric_only=True).round(2)
 
-    # Add the counts as the last row in the result
-    result.loc["Counts"] = counts
+        # Add the overall mean as a new column
+        transposed_data["data"] = overall_mean
+
+        # Calculate the count of observations in each group and overall
+        counts = data.groupby(variable).size()
+        counts["data"] = data.shape[0]  # Add the total number of observations
+
+        # Add the counts as the last row in the result
+        result.loc["Counts"] = counts
+    
+    else:
+        result = result.style.background_gradient(axis=0)
+        # counts = data.groupby(variable).size()
+        # counts["data"] = data.shape[0]
+        print(f'# observations per cluster: {data.groupby(variable).size().tolist()}')
 
     return result
 

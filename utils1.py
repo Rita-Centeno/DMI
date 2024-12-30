@@ -322,18 +322,19 @@ def plot_map(data, column, hover_col, zoom = 1, invert = False):
 
 
 def plot_distributions(data: pd.DataFrame, variables: list, colors: list, iqr_removal=False):
+    df = data[variables]
+
     if iqr_removal:
-        df = remove_outliers_iqr(data).iloc[:, 1:]
-    else:
-        df = data.iloc[:, 1:]
+        df = remove_outliers_iqr(df)
 
     # Create a new DataFrame with the scaled values
-    data_no_outliers_iqr_st_scl = StandardScaler().fit_transform(df)
-    data_no_outliers_iqr_st_scl = pd.DataFrame(data_no_outliers_iqr_st_scl, columns=df.columns, index=df.index)
+    df_st_scl = StandardScaler().fit_transform(df)
+    df_st_scl = pd.DataFrame(df_st_scl, columns=df.columns, index=df.index)
+    # df_st_scl = df
 
     # Create KDE plots for the scaled numerical columns
     for i in range(len(variables)):
-        sns.kdeplot(data_no_outliers_iqr_st_scl[variables[i]], color=colors[i])
+        sns.kdeplot(df_st_scl[variables[i]], color=colors[i])
 
     # Set the legend and label the x-axis
     plt.legend(variables, fontsize=16)

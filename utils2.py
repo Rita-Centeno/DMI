@@ -163,7 +163,7 @@ def groupby_mean(data, variable, gradient=False, n_features=13, ax=0):
         overall_mean = data.mean(numeric_only=True).round(2)
 
         # Add the overall mean as a new column
-        transposed_data["data"] = overall_mean
+        result["data"] = overall_mean
 
         # Calculate the count of observations in each group and overall
         counts = data.groupby(variable).size()
@@ -307,41 +307,41 @@ def plot_r2_linkage(df, max_nclus):
 
 # COMPARE CLUSTERING TECHNIQUES ---------------------------------------------------------------------------------------
 
-# def get_ss(df):
-#     """Computes the sum of squares for all variables given a dataset
-#     """
-#     ss = np.sum(df.var() * (df.count() - 1))
-#     return ss  # return sum of sum of squares of each df variable
+def get_ss(df):
+    """Computes the sum of squares for all variables given a dataset
+    """
+    ss = np.sum(df.var() * (df.count() - 1))
+    return ss  # return sum of sum of squares of each df variable
 
-# def r2(df, labels):
-#     sst = get_ss(df)
-#     ssw = np.sum(df.groupby(labels).apply(get_ss))
-#     return 1 - ssw/sst
+def r2(df, labels):
+    sst = get_ss(df)
+    ssw = np.sum(df.groupby(labels).apply(get_ss))
+    return 1 - ssw/sst
 
-# def get_r2_scores(df, clusterer, min_k=2, max_k=10):
-#     """
-#     Loop over different values of k. To be used with sklearn clusterers.
-#     """
-#     r2_clust = {}
-#     for n in range(min_k, max_k):
-#         clust = clone(clusterer).set_params(n_clusters=n)
-#         labels = clust.fit_predict(df)
-#         r2_clust[n] = r2(df, labels)
-#     return r2_clust
+def get_r2_scores(df, clusterer, min_k=2, max_k=10):
+    """
+    Loop over different values of k. To be used with sklearn clusterers.
+    """
+    r2_clust = {}
+    for n in range(min_k, max_k):
+        clust = clone(clusterer).set_params(n_clusters=n)
+        labels = clust.fit_predict(df)
+        r2_clust[n] = r2(df, labels)
+    return r2_clust
 
 
-# def get_r2_df(df, feats, kmeans_model, hierar_model):
-#   # Obtaining the R² scores for each cluster solution
+def get_r2_df(df, feats, kmeans_model, hierar_model):
+  # Obtaining the R² scores for each cluster solution
 
-#   r2_scores = {}
-#   r2_scores['kmeans'] = get_r2_scores(df[feats], kmeans_model)
+  r2_scores = {}
+  r2_scores['kmeans'] = get_r2_scores(df[feats], kmeans_model)
 
-#   for linkage in ['complete', 'average', 'single', 'ward']:
-#       r2_scores[linkage] = get_r2_scores(
-#           df[feats], hierar_model.set_params(linkage=linkage)
-#       )
+  for linkage in ['complete', 'average', 'single', 'ward']:
+      r2_scores[linkage] = get_r2_scores(
+          df[feats], hierar_model.set_params(linkage=linkage)
+      )
 
-#   return pd.DataFrame(r2_scores)
+  return pd.DataFrame(r2_scores)
 
 
 def plot_r2_scores(r2_scores,

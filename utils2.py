@@ -355,3 +355,153 @@ def plot_r2_scores(r2_scores,
   plt.xlabel("Number of clusters", fontsize=13)
   plt.ylabel("R² metric", fontsize=13)
   plt.show()
+
+
+# MERGING PERSPECTIVES ---------------------------------------------------------------------------------------
+
+def hc_merge_mapper(df, label1, label2, feats, merged_label, n_clusters=1):
+  """
+  merged_label  : what to call the column that should contain the merged label
+  n_clusters    : how many clusters to keep
+  """
+  df_ = df.copy()
+
+  # Centroids of the concatenated cluster labels
+  df_centroids = df_.groupby([label1, label2])[feats].mean()
+
+  # Running the Hierarchical clustering based on the correct number of clusters
+  hclust = AgglomerativeClustering(
+      linkage='ward',
+      metric='euclidean',
+      n_clusters=n_clusters
+  )
+  hclust_labels = hclust.fit_predict(df_centroids)
+  df_centroids[merged_label] = hclust_labels
+
+  cluster_mapper = df_centroids[merged_label].to_dict()
+
+  # Mapping the clusters on the centroids to the observations
+  df_[merged_label] = df_.apply(
+      lambda row: cluster_mapper[
+          (row[label1], row[label2])
+      ], axis=1
+  )
+
+  return df_, df_centroids
+
+
+def make_contingency_table(df, label1, label2):
+  df_ = df.groupby([label1, label2])\
+            .size()\
+            .to_frame()\
+            .reset_index()\
+            .pivot(index=label2, columns=label1)
+  df_.columns = df_.columns.droplevel()
+  return df_
+
+
+
+# PROFILING -------------------------------------------------------------------------------------------------------
+
+def cluster_profiles(df,
+                     label_columns,
+                     figsize,
+                     compar_titles=None,
+                     colors='Set1'):
+    """
+    Pass df with labels columns of one or multiple clustering labels.
+    Then specify this label columns to perform the cluster profile according to them.
+    """
+    if compar_titles == None:
+        compar_titles = [""]*len(label_columns)
+
+    fig, axes = plt.subplots(nrows=len(label_columns), ncols=2,
+                             figsize=figsize, squeeze=False)
+    for ax, label, titl in zip(axes, label_columns, compar_titles):
+
+        # Filtering df
+        drop_cols = [i for i in label_columns if i!=label]
+        dfax = df.drop(drop_cols, axis=1)
+
+        # Getting the cluster centroids and counts
+        centroids = dfax.groupby(by=label, as_index=False).mean()
+        counts = dfax.groupby(by=label, as_index=False).count().iloc[:,[0,1]]
+        counts.columns = [label, "counts"]
+
+        # Setting Data
+        pd.plotting.parallel_coordinates(centroids, label,
+                                         color=sns.color_palette(palette=colors), ax=ax[0])
+        sns.barplot(x=label, y="counts", data=counts, ax=ax[1],
+                    palette=sns.color_palette(palette=colors))
+
+        #Setting Layout
+        handles, _ = ax[0].get_legend_handles_labels()
+        cluster_labels = ["Cluster {}".format(i) for i in range(len(handles))]
+        ax[0].annotate(text=titl, xy=(0.95,1.1), xycoords='axes fraction', fontsize=13, fontweight = 'heavy')
+        ax[0].legend(handles, cluster_labels) # Adaptable to number of clusters
+        ax[0].axhline(color="black", linestyle="--")
+        ax[0].set_title("Cluster Means - {} Clusters".format(len(handles)), fontsize=13)
+        ax[0].set_xticklabels(ax[0].get_xticklabels(), rotation=-90)
+        ax[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        ax[1].set_xticklabels(cluster_labels)
+        ax[1].set_xlabel("")
+        ax[1].set_ylabel("Absolute Frequency")
+        ax[1].set_title("Cluster Sizes - {} Clusters".format(len(handles)), fontsize=13)
+
+    plt.subplots_adjust(hspace=0.4, top=0.90)
+    plt.suptitle("Cluster Simple Profilling", fontsize=23)
+    plt.show()
+
+
+def cluster_heatmaps(df,
+                     label_columns,
+                     figsize=(20,20),
+                     compar_titles=None,
+                     heat_colors='RdYlBu',
+                     bar_colors='Set2'):
+    """
+    Pass df with labels columns of one or multiple clustering labels.
+    Then specify this label columns to perform the cluster profile according to them.
+    """
+    if compar_titles == None:
+        compar_titles = [""]*len(label_columns)
+
+    fig, axes = plt.subplots(nrows=len(label_columns), ncols=2,
+                             figsize=figsize, squeeze=False)
+    for ax, label, titl in zip(axes, label_columns, compar_titles):
+
+        # Filtering df
+        drop_cols = [i for i in label_columns if i!=label]
+        dfax = df.drop(drop_cols, axis=1)
+
+        # Getting the cluster centroids and counts
+        centroids = dfax.groupby(by=label, as_index=False).mean()
+        counts = dfax.groupby(by=label, as_index=False).count().iloc[:,[0,1]]
+        counts.columns = [label, "counts"]
+
+
+        # Setting Data
+        handles, _ = ax[0].get_legend_handles_labels()
+        cluster_labels = ["Cluster {}".format(i) for i in range(counts.shape[0])]
+
+        sns.heatmap(centroids.drop(columns=label),
+              square=False, cmap=heat_colors,
+              ax=ax[0],
+              )
+
+        ax[0].set_title("Cluster Means Heatmap - {} Clusters".format(counts.shape[0]), fontsize=18)
+        ax[0].set_xticklabels(ax[0].get_xticklabels(), rotation=-20)
+        ax[0].set_yticklabels(cluster_labels, rotation=0)
+        ax[1].annotate(text=titl, xy=(-0.3,1.15),
+                       xycoords='axes fraction',
+                       fontsize=18, fontweight = 'heavy')
+
+
+        sns.barplot(y=label, x="counts", data=counts, ax=ax[1], orient='h', palette=bar_colors)
+        ax[1].set_yticklabels(cluster_labels)
+        ax[1].set_title("Cluster Sizes - {} Clusters".format(counts.shape[0]), fontsize=18)
+        ax[1].set_ylabel("")
+
+    plt.subplots_adjust(hspace=0.4, top=0.90)
+    plt.suptitle("Cluster Simple Profilling", fontsize=23)
+    plt.show()
